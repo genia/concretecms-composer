@@ -1,0 +1,19 @@
+# Ignore Composer stuff
+/vendor/
+
+# Ignore Concrete stuff
+/public/application/files
+
+# Ignore build files
+/public/application/css/main.css
+/public/application/js/main.js
+
+# Ignore developer stuff
+/.idea
+/node_modules
+/.env
+/public/mix-manifest.json
+/phpunit.xml
+/build
+/.phpunit.*
+/public/hot

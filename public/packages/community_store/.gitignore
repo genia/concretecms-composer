@@ -1,0 +1,16 @@
+desktop.ini
+.project
+.DS_Store
+thumbs.db
+/.settings/
+/.buildpath
+vendor
+.php_cs.cache
+/node_modules/
+package-lock.json
+/docs/.vuepress/dist/
+docs/.idea/docs.iml
+docs/.idea/modules.xml
+docs/.idea/workspace.xml
+languages
+/composer.lock
