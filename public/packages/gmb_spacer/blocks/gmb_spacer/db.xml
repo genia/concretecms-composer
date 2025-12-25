@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.concrete5.org/doctrine-xml/0.5"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.concrete5.org/doctrine-xml/0.5 https://concretecms.github.io/doctrine-xml/doctrine-xml-0.5.xsd">
+
+    <table name="btGmbSpacer">
+        <field name="bID" type="integer">
+            <key/>
+            <unsigned/>
+        </field>
+        <field name="spacerHeight" type="integer" default="1"/>
+        <field name="spacerUnit" type="string" length="10"/>
+		<field name="spacerHighlight" type="boolean" default="1"/>
+    </table>
+
+</schema>
