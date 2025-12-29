@@ -23,6 +23,18 @@
     cursor: pointer;
 }
 
+/* Hide price by default, show on hover */
+.store-product-list-item .store-product-list-price {
+    opacity: 0 !important;
+    transition: opacity 0.3s ease;
+    visibility: hidden !important;
+}
+
+.store-product-list-item:hover .store-product-list-price {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
 .store-product-list-item form {
     display: flex;
     flex-direction: column;
