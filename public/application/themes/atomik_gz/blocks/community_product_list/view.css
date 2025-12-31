@@ -302,6 +302,22 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+    /* Ensure Bootstrap grid columns work on mobile */
+    .store-product-list .store-product-list-item.col-xs-6 {
+        width: 50% !important;
+        float: left !important;
+        padding-left: 15px;
+        padding-right: 15px;
+        display: block;
+    }
+    
+    /* Clear floats to prevent wrapping issues */
+    .store-product-list .row::after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+    
     .store-product-list-item {
         margin-bottom: 30px;
         padding: 12px; /* Slightly less padding on mobile */

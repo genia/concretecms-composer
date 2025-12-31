@@ -82,19 +82,19 @@ if (!$products) {
 $productsPerRow = empty($productsPerRow) ? 1 : (int) $productsPerRow;
 switch ($productsPerRow) {
     case 2:
-        $columnClass = 'col-md-6 col-sm-6 col-xs-12';
+        $columnClass = 'col-md-6 col-sm-6 col-xs-6';
         break;
     case 3:
-        $columnClass = 'col-md-4 col-sm-4 col-xs-12';
+        $columnClass = 'col-md-4 col-sm-4 col-xs-6';
         break;
     case 4:
-        $columnClass = 'col-md-3 col-sm-6 col-xs-12';
+        $columnClass = 'col-md-3 col-sm-6 col-xs-6';
         break;
     case 6:
-        $columnClass = 'col-md-2 col-sm-6 col-xs-12';
+        $columnClass = 'col-md-2 col-sm-6 col-xs-6';
         break;
     default:
-        $columnClass = 'col-md-12';
+        $columnClass = 'col-md-12 col-xs-12';
 }
 ?>
 <div class="store-product-list-block">
