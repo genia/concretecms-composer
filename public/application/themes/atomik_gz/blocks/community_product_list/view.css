@@ -132,7 +132,7 @@
 
 /* Product Description - centered above thumbnail */
 .store-product-list-description {
-    color: #666;
+    /* Color removed to match price (inherit default text color) */
     font-size: 0.875rem;
     line-height: 1.6;
     margin: 0 0 15px 0;
