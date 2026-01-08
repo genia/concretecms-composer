@@ -201,6 +201,13 @@ switch ($productsPerRow) {
                         $priceHtml = ob_get_clean();
                     }
                     
+                    // Output description above thumbnail (centered)
+                    if ($showDescription && $displayMode != 'list') {
+                        ?>
+                        <div class="store-product-list-description"><?= $csm->t($product->getDesc(), 'productDescription', $product->getID()) ?></div>
+                        <?php
+                    }
+                    
                     if ($imgObj !== null) {
                         $thumb = $communityStoreImageHelper->getThumbnail($imgObj);
                         if ($displayMode == 'list') {
@@ -238,7 +245,6 @@ switch ($productsPerRow) {
                                 <?php endif; ?>
                                 <?php
                             }
-                            echo $priceHtml; // Output price inside thumbnail for overlay
                             ?>
                         </div>
                         <?php
@@ -247,6 +253,10 @@ switch ($productsPerRow) {
                             </div>
                             <?php
                         }
+                    }
+                    // Output price outside of thumbnail, in its original position
+                    if ($priceHtml) {
+                        echo $priceHtml;
                     }
                     if ($displayMode == 'list') {
                         ?>
@@ -332,7 +342,8 @@ switch ($productsPerRow) {
                         </div>
                         <?php
                     }
-                    if ($showDescription) {
+                    // Description for list mode (already handled for grid mode above thumbnail)
+                    if ($showDescription && $displayMode == 'list') {
                         ?>
                         <div class="store-product-list-description"><?= $csm->t($product->getDesc(), 'productDescription', $product->getID()) ?></div>
                         <?php
