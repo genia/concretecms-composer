@@ -14,8 +14,9 @@
 
 .store-filter-group {
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
 }
 
 .store-filter-title {
@@ -25,6 +26,16 @@
     letter-spacing: 0.3px;
     white-space: nowrap;
     opacity: 0.7;
+}
+
+/* Hide the PRICE label, right-align, and display last */
+.store-filter-group:has(.store-filter-price-slider) .store-filter-title {
+    display: none;
+}
+
+.store-filter-group:has(.store-filter-price-slider) {
+    margin-left: auto;
+    order: 999; /* Display last */
 }
 
 .store-filter-options {
