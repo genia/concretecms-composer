@@ -28,14 +28,9 @@
     opacity: 0.7;
 }
 
-/* Hide the PRICE label, right-align, and display last */
+/* Hide the PRICE label */
 .store-filter-group:has(.store-filter-price-slider) .store-filter-title {
     display: none;
-}
-
-.store-filter-group:has(.store-filter-price-slider) {
-    margin-left: auto;
-    order: 999; /* Display last */
 }
 
 .store-filter-options {
@@ -176,6 +171,9 @@
 .store-filter-actions {
     display: inline-flex;
     gap: 8px;
+    /* Add top margin to align with attribute buttons (below the titles) */
+    margin-top: calc(0.85rem * 1.2 + 6px); /* title font-size * line-height + gap */
+    margin-left: auto; /* Right-align in container */
 }
 
 .store-filter-actions .btn {
