@@ -40,8 +40,7 @@ use Concrete\Core\Area\GlobalArea;
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <?=t('Copyright %s. ', date('Y'))?>
-                    <?php echo t('Built with <strong><a href="https://www.concretecms.org" title="Concrete CMS" rel="nofollow">Concrete CMS</a></strong>.') ?>
+                    <?=t('Copyright 2022-2026')?>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <?php echo Core::make('helper/navigation')->getLogInOutLink() ?>
