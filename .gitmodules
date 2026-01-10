@@ -1,0 +1,6 @@
+[submodule "community_store_import"]
+    path = public/packages/community_store_import
+    url = https://github.com/genia/community-store-import.git
+[submodule "community_store_import"]
+    path = public/packages/community_store_paypal_checkout
+    url = https://github.com/genia/community_store_paypal_checkout.git
