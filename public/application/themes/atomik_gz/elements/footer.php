@@ -40,7 +40,7 @@ use Concrete\Core\Area\GlobalArea;
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <?=t('Copyright 2022-2026')?>
+                    <?=t('Copyright © 2022-2026 Neanna.net')?>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <?php echo Core::make('helper/navigation')->getLogInOutLink() ?>
