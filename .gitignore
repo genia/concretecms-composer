@@ -17,3 +17,6 @@
 /build
 /.phpunit.*
 /public/hot
+
+# Ignore platform-specific files
+/public/.dh-diag
