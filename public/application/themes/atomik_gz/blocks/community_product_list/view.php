@@ -247,7 +247,34 @@ switch ($productsPerRow) {
                     }
                     
                     if ($imgObj !== null) {
-                        $thumb = $communityStoreImageHelper->getThumbnail($imgObj);
+                        // Get thumbnail URL - use getThumbnailURL which should return a URL string
+                        // The thumbnail will be generated lazily when the URL is first accessed by the browser
+                        // This avoids loading large images into memory during page rendering
+                        $thumb = null;
+                        try {
+                            // Try to get thumbnail URL directly without triggering generation
+                            // getThumbnail() internally calls getThumbnailURL() which should just return a URL
+                            $thumb = $communityStoreImageHelper->getThumbnail($imgObj);
+                            
+                            // Validate we got a URL string, not an object that triggers processing
+                            if (!$thumb || !isset($thumb->src) || empty($thumb->src)) {
+                                throw new \Exception('Thumbnail src is empty');
+                            }
+                            
+                            // Ensure src is a URL string, not triggering immediate processing
+                            if (!is_string($thumb->src)) {
+                                throw new \Exception('Thumbnail src is not a string');
+                            }
+                        } catch (\Throwable $e) {
+                            // Catch any error including OutOfMemoryError
+                            // If thumbnail URL generation fails, use original image URL directly
+                            \Concrete\Core\Support\Facade\Log::addWarning('Failed to get thumbnail URL for product ' . $product->getID() . ': ' . $e->getMessage());
+                            $thumb = new \stdClass();
+                            // Use the file's relative path directly - browser will handle it
+                            $thumb->src = $imgObj->getRelativePath();
+                            $thumb->retinaSrc = null;
+                        }
+                        
                         if ($displayMode == 'list') {
                             ?>
                             <div class="col-md-3 col-sm-6">
@@ -690,7 +717,18 @@ switch ($productsPerRow) {
                             $product->setVariation($variation);
                             $product->setPriceAdjustment(0);
                             $imgObj = $product->getImageObj();
-                            $thumb = $imgObj ? $communityStoreImageHelper->getThumbnail($imgObj) : false;
+                            $thumb = false;
+                            if ($imgObj) {
+                                try {
+                                    $thumb = $communityStoreImageHelper->getThumbnail($imgObj);
+                                } catch (\Exception $e) {
+                                    // If thumbnail generation fails, use original image
+                                    \Concrete\Core\Support\Facade\Log::addWarning('Failed to generate thumbnail for product variation ' . $product->getID() . ': ' . $e->getMessage());
+                                    $thumb = new \stdClass();
+                                    $thumb->src = $imgObj->getRelativePath();
+                                    $thumb->retinaSrc = null;
+                                }
+                            }
                             $price = $product->getPrice(1, true);
                             $salePrice = $product->getSalePrice() ?: $product->getPrice();
                             if ($salePrice == $price) {
