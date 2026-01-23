@@ -455,6 +455,13 @@ class Edit extends PageController
             // Save again to ensure all changes are persisted
             $product->save();
             
+            // Generate product page if it doesn't exist (for click handler to work)
+            // Check if product already has a page (same logic as import script)
+            if (!$product->getPageID()) {
+                // Generate the product page - this will create the detail page
+                $product->generatePage();
+            }
+            
             // Redirect to edit page
             $this->set('productID', $product->getID());
             return $this->view($product->getID());
