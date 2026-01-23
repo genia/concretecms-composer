@@ -20,3 +20,5 @@
 
 # Ignore platform-specific files
 /public/.dh-diag
+/public/php_errors.log
+/public/phpinfo.php

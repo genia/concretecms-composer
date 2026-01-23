@@ -125,11 +125,39 @@ switch ($productsPerRow) {
         </script>
         <?php
     }
+    
+    // Check if user is admin for in-context editing
+    $u = new \Concrete\Core\User\User();
+    $isAdmin = false;
+    if ($u->isRegistered()) {
+        $ui = $u->getUserInfoObject();
+        if ($ui) {
+            $adminGroup = \Concrete\Core\User\Group\Group::getByName('Administrators');
+            if ($adminGroup && $ui->inGroup($adminGroup)) {
+                $isAdmin = true;
+            } elseif ($u->getUserID() == 1) {
+                $isAdmin = true; // Super admin
+            }
+        }
+    }
+    
+    if ($isAdmin) {
+        ?>
+        <div class="store-product-list-admin-controls mb-3 text-end">
+            <a href="<?= \Concrete\Core\Support\Facade\Url::to('/store/product/edit/new') ?>" class="btn btn-sm btn-primary" title="<?= t('Add New Product') ?>">
+                <i class="fa fa-plus"></i> <?= t('Add Product') ?>
+            </a>
+        </div>
+        <?php
+    }
     ?>
     <div class="store-product-list row store-product-list-per-row-<?= $productsPerRow ?>">
         <?php
         $productIndex = 1;
         foreach ($products as $product) {
+            // Store base product ID before variation handling
+            $baseProductId = $product->getID();
+            
             $variationLookup = $product->getVariationLookup();
             $variationData = $product->getVariationData();
             $availableOptionsids = $variationData['availableOptionsids'];
@@ -150,6 +178,16 @@ switch ($productsPerRow) {
             ?>
             <div class="store-product-list-item mb-3 <?= $columnClass ?> <?= $activeclass ?> <?= $outOfStockClass ?>" 
                  <?php if ($productPageUrl): ?>data-product-url="<?= $productPageUrl ?>"<?php endif; ?>>
+                <?php if ($isAdmin): ?>
+                    <div class="store-product-edit-icon">
+                        <a href="<?= \Concrete\Core\Support\Facade\Url::to('/store/product/edit', $baseProductId) ?>" 
+                           class="btn btn-sm btn-secondary" 
+                           title="<?= t('Edit Product') ?>"
+                           onclick="event.stopPropagation();">
+                            <span class="edit-icon-symbol">✎</span>
+                        </a>
+                    </div>
+                <?php endif; ?>
                 <form data-product-id="<?= $product->getID() ?>">
                     <?php $token->output('community_store') ?>
                     <?php

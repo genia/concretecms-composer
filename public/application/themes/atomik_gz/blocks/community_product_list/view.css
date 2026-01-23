@@ -3,6 +3,39 @@
     margin: 2rem 0;
 }
 
+/* Admin Controls */
+.store-product-list-admin-controls {
+    margin-bottom: 1rem;
+}
+
+/* Edit Icon on Product Items */
+.store-product-list-item {
+    position: relative;
+}
+
+.store-product-edit-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+}
+
+.store-product-edit-icon .btn {
+    padding: 6px 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.store-product-edit-icon .edit-icon-symbol {
+    font-size: 14px;
+    line-height: 1;
+    display: inline-block;
+}
+
 /* Product List Grid Row */
 .store-product-list {
     margin-left: -15px;
