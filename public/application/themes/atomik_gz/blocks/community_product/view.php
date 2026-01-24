@@ -549,83 +549,82 @@ $isSellable = $product->isSellable();
         </div>
         <?php
         if ($showImage) {
+            // Get all product images (primary + alternates)
+            $allImages = $product->getImagesObjects();
+            $primaryImage = $product->getImageObj();
+            
+            // Combine primary and alternate images into one array
+            $carouselImages = [];
+            if ($primaryImage) {
+                $carouselImages[] = $primaryImage;
+            }
+            // Add alternate images (excluding primary if it's already in the list)
+            foreach ($allImages as $img) {
+                if ($img && (!$primaryImage || $img->getFileID() != $primaryImage->getFileID())) {
+                    $carouselImages[] = $img;
+                }
+            }
+            
+            // If no images found, try just the primary
+            if (empty($carouselImages) && $primaryImage) {
+                $carouselImages[] = $primaryImage;
+            }
+            
+            $numImages = count($carouselImages);
             ?>
             <div class="store-product-image col-md-6">
-                <div>&nbsp;</div>
-                <?php
-                $imgObj = $product->getImageObj();
-                if (is_object($imgObj)) {
-                    $thumb = $communityStoreImageHelper->getThumbnail($imgObj);
-                    $imgDescription = $imgObj->getDescription();
-                    if ($imgDescription) {
-                        $imgTitle = $imgDescription;
-                    } else {
-                        $imgTitle = $imgObj->getTitle();
-                    }
-                    ?>
-                    <div class="store-product-primary-image mb-sm-5 mb-2">
-                        <a
-                            itemprop="image" href="<?= $imgObj->getRelativePath() ?>"
-                            title="<?= h($imgObj->getTitle()) ?>"
-                            class="store-product-thumb text-center center-block"
-                            data-pswp-width="<?= $imgObj->getAttribute('width') ?>"
-                            data-pswp-height="<?= $imgObj->getAttribute('height') ?>"
-                        >
-                            <img
-                                class="img-responsive img-fluid"
-                                src="<?= $thumb->src ?>"
-                                title="<?= h($imgObj->getTitle()) ?>"
-                                alt="<?= h($imgTitle) ?>"
-                            />
-                        </a>
-                    </div>
-                    <?php
-                }
-                $images = $product->getImagesObjects();
-                $numImages = count($images);
-                if ($numImages > 0) {
-                    $loop = 1;
-                    ?>
-                    <div class="store-product-additional-images row">
-                        <?php
-                        /*
-                         * This is only needed if no thumbnail type was defined or for some reason
-                         * we need to fallback on the legacy thumbnailer.
-                         * We are setting crop to true as it's false by default
-                         */
-                        $communityStoreImageHelper->setLegacyThumbnailCrop(true);
-                        foreach ($images as $secondaryImage) {
-                            $thumb = $communityStoreImageHelper->getThumbnail($secondaryImage);
-                            $imgDescription = $secondaryImage->getDescription();
-                            $imgTitle = $imgDescription ?: $secondaryImage->getTitle();
-                            ?>
-                            <div class="store-product-additional-image col-md-6 col-sm-6 mb-sm-5 mb-2">
-                                <a
-                                    href="<?= $secondaryImage->getRelativePath() ?>"
-                                    title="<?= h($product->getName()) ?>"
-                                    class="store-product-thumb text-center center-block"
-                                    data-pswp-width="<?= $secondaryImage->getAttribute('width') ?>"
-                                    data-pswp-height="<?= $secondaryImage->getAttribute('height') ?>"
-                                >
-                                    <img
-                                        class="img-responsive img-fluid"
-                                        src="<?= $thumb->src ?>"
-                                        title="<?= h($secondaryImage->getTitle()) ?>"
-                                        alt="<?= h($imgTitle) ?>"
-                                    />
-                                </a>
-                            </div>
+                <?php if ($numImages > 0): ?>
+                    <div id="product-image-carousel" class="carousel slide">
+                        <div class="carousel-inner">
                             <?php
-                            if ($loop > 0 && 0 == $loop % 2 && $numImages > $loop) {
-                                echo '</div><div class="store-product-additional-images row">';
-                            }
-                            ++$loop;
-                        }
-                        ?>
+                            $communityStoreImageHelper->setLegacyThumbnailCrop(true);
+                            foreach ($carouselImages as $index => $imgObj):
+                                if (!is_object($imgObj)) continue;
+                                
+                                $thumb = $communityStoreImageHelper->getThumbnail($imgObj);
+                                $imgDescription = $imgObj->getDescription();
+                                if ($imgDescription) {
+                                    $imgTitle = $imgDescription;
+                                } else {
+                                    $imgTitle = $imgObj->getTitle();
+                                }
+                                ?>
+                                <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
+                                    <a
+                                        <?= $index === 0 ? 'itemprop="image"' : '' ?>
+                                        href="<?= $imgObj->getRelativePath() ?>"
+                                        title="<?= h($imgObj->getTitle()) ?>"
+                                        class="store-product-thumb text-center center-block d-block"
+                                        data-pswp-width="<?= $imgObj->getAttribute('width') ?>"
+                                        data-pswp-height="<?= $imgObj->getAttribute('height') ?>"
+                                    >
+                                        <img
+                                            class="img-responsive img-fluid d-block mx-auto"
+                                            src="<?= $thumb->src ?>"
+                                            title="<?= h($imgObj->getTitle()) ?>"
+                                            alt="<?= h($imgTitle) ?>"
+                                        />
+                                    </a>
+                                </div>
+                                <?php
+                            endforeach;
+                            $communityStoreImageHelper->setLegacyThumbnailCrop(false);
+                            ?>
+                        </div>
+                        <?php if ($numImages > 1): ?>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#product-image-carousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden"><?= t('Previous') ?></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#product-image-carousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden"><?= t('Next') ?></span>
+                            </button>
+                        <?php endif; ?>
                     </div>
-                    <?php
-                }
-                ?>
+                <?php else: ?>
+                    <div>&nbsp;</div>
+                <?php endif; ?>
             </div>
             <?php
         }
@@ -660,6 +659,46 @@ lightbox.addFilter('useContentPlaceholder', (useContentPlaceholder, content) => 
     return content.index === 0;
 });
 lightbox.init();
+</script>
+<script>
+// Initialize product image carousel without auto-play
+(function() {
+    function initCarousel() {
+        var carouselElement = document.getElementById('product-image-carousel');
+        if (!carouselElement) return;
+        
+        // Prevent Bootstrap from auto-initializing
+        carouselElement.removeAttribute('data-bs-ride');
+        
+        // Check if Bootstrap 5 is available
+        if (typeof bootstrap !== 'undefined' && bootstrap.Carousel) {
+            var carousel = new bootstrap.Carousel(carouselElement, {
+                interval: false,
+                wrap: true,
+                keyboard: true
+            });
+        } else if (typeof $ !== 'undefined' && $.fn.carousel) {
+            // Fallback for Bootstrap 4 or jQuery Bootstrap
+            $(carouselElement).carousel({
+                interval: false,
+                wrap: true,
+                keyboard: true
+            });
+        }
+    }
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCarousel);
+    } else {
+        initCarousel();
+    }
+    
+    // Also try with jQuery if available
+    if (typeof $ !== 'undefined') {
+        $(document).ready(initCarousel);
+    }
+})();
 </script>
 <script>
 <?php
