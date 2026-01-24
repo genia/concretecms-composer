@@ -50,6 +50,7 @@
     border: none; /* No visible borders */
     cursor: pointer; /* Show pointer cursor for clickable tiles */
     transition: border 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 8px;
 }
 
 .store-product-list-item[data-product-url] {
@@ -88,6 +89,7 @@
 
 .store-product-list-thumbnail {
     position: relative;
+    border-radius: 5px;
 }
 
 .store-product-list-thumbnail img {

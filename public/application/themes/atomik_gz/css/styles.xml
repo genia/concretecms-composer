@@ -31,9 +31,9 @@
             <font type="google" name="Work Sans" />
         </preset>
         <preset identifier="midnight-velvet">
-            <font type="google" name="Noto Sans" />
+            <font type="google" name="Alegreya SC" />
             <font type="google" name="Inter" />
-            <font type="google" name="Oswald" />
+            <font type="google" name="Montserrat Alternates" />
         </preset>
     </webfonts>
     <set name="Base Colors">
