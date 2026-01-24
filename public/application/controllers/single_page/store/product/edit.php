@@ -9,6 +9,7 @@ use Concrete\Core\Support\Facade\Url;
 use Concrete\Core\Routing\Redirect;
 use Concrete\Core\Validation\CSRF\Token;
 use Concrete\Package\CommunityStore\Src\CommunityStore\Product\Product;
+use Concrete\Package\CommunityStore\Src\CommunityStore\Product\ProductImage;
 use Concrete\Package\CommunityStore\Src\CommunityStore\Utilities\Multilingual as CSMultilingual;
 use Concrete\Package\CommunityStore\Src\CommunityStore\Multilingual\Translation;
 use Concrete\Core\Support\Facade\Log;
@@ -300,8 +301,22 @@ class Edit extends PageController
         }
         
         try {
-            // Handle image upload - now done via AJAX, so we only need the file ID
-            $imageID = (int)$this->post('product_image_id');
+            // Handle multiple images - now done via AJAX, so we only need the file IDs
+            $imageIDs = $this->post('product_image_id');
+            if (!is_array($imageIDs)) {
+                // Legacy support: single image ID
+                $imageIDs = [$imageIDs];
+            }
+            
+            // Filter out empty values and convert to integers
+            $imageIDs = array_filter(array_map('intval', $imageIDs), function($id) {
+                return $id > 0;
+            });
+            $imageIDs = array_values($imageIDs); // Reindex array
+            
+            // First image is primary, rest are alternates
+            $primaryImageID = !empty($imageIDs) ? $imageIDs[0] : 0;
+            $alternateImageIDs = array_slice($imageIDs, 1);
             
             // Legacy support: if file was uploaded via form (not AJAX), handle it
             if (isset($_FILES['product_image']) && !empty($_FILES['product_image']['tmp_name'])) {
@@ -387,7 +402,7 @@ class Edit extends PageController
                     'pAllowDecimalQty' => false, // No decimal quantities by default
                     'pCostPrice' => '', // Explicitly set to empty string to prevent null
                     'pWholesalePrice' => '', // Explicitly set to empty string to prevent null
-                    'pfID' => $imageID > 0 ? $imageID : 0, // Set image ID in data array
+                    'pfID' => $primaryImageID, // Set primary image ID in data array
                 ];
                 
                 $product = Product::saveProduct($data);
@@ -395,13 +410,19 @@ class Edit extends PageController
                     throw new \Exception(t('Failed to create product'));
                 }
                 
-                // Set image ID after product creation (in case pfID in data array didn't work)
-                if ($imageID > 0) {
-                    $file = File::getByID($imageID);
+                // Set primary image ID after product creation (in case pfID in data array didn't work)
+                if ($primaryImageID > 0) {
+                    $file = File::getByID($primaryImageID);
                     if ($file && !$file->isError()) {
-                        $product->setImageId($imageID);
+                        $product->setImageId($primaryImageID);
                         $product->save(); // Save again to persist the image
                     }
+                }
+                
+                // Add alternate images
+                if (!empty($alternateImageIDs)) {
+                    $altImages = ['pifID' => $alternateImageIDs];
+                    ProductImage::addImagesForProduct($altImages, $product);
                 }
             } else {
                 // Update existing product
@@ -414,16 +435,20 @@ class Edit extends PageController
                 $product->setDescription(trim($this->post('product_desc_en')));
                 $product->setPrice((float)$productPrice);
                 
-                // Set image ID
-                if ($imageID > 0) {
-                    $file = File::getByID($imageID);
+                // Set primary image ID
+                if ($primaryImageID > 0) {
+                    $file = File::getByID($primaryImageID);
                     if ($file && !$file->isError()) {
-                        $product->setImageId($imageID);
+                        $product->setImageId($primaryImageID);
                     }
                 } else {
-                    // Remove image if explicitly cleared
+                    // Remove primary image if explicitly cleared
                     $product->setImageId(0);
                 }
+                
+                // Update alternate images
+                $altImages = ['pifID' => $alternateImageIDs];
+                ProductImage::addImagesForProduct($altImages, $product);
             }
             
             // Save product

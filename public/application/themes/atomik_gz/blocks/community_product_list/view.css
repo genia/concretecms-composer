@@ -86,12 +86,41 @@
     aspect-ratio: 1 / 1; /* Default Community Store product list ratio */
 }
 
+.store-product-list-thumbnail {
+    position: relative;
+}
+
 .store-product-list-thumbnail img {
     width: 100%;
     height: 100%;
     object-fit: cover; /* Crop to fill container while maintaining aspect ratio */
     display: block;
     transition: opacity 0.3s ease;
+}
+
+.store-product-main-image {
+    position: relative;
+    z-index: 1;
+}
+
+.store-product-alternate-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Show alternate image on hover - only if alternate images exist */
+.store-product-list-thumbnail.has-alternate-images:hover .store-product-main-image {
+    opacity: 0;
+}
+
+.store-product-list-thumbnail.has-alternate-images:hover .store-product-alternate-image {
+    opacity: 1;
 }
 
 /* Fade thumbnail for out-of-stock products */

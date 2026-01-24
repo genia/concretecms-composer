@@ -239,10 +239,10 @@ switch ($productsPerRow) {
                         $priceHtml = ob_get_clean();
                     }
                     
-                    // Output description above thumbnail (centered)
+                    // Output product name above thumbnail (centered) instead of description
                     if ($showDescription && $displayMode != 'list') {
                         ?>
-                        <div class="store-product-list-description"><?= $csm->t($product->getDesc(), 'productDescription', $product->getID()) ?></div>
+                        <div class="store-product-list-description"><?= $csm->t($product->getName(), 'productName', $product->getID()) ?></div>
                         <?php
                     }
                     
@@ -275,18 +275,43 @@ switch ($productsPerRow) {
                             $thumb->retinaSrc = null;
                         }
                         
+                        // Get alternate images for hover effect
+                        $alternateImages = [];
+                        try {
+                            $altImageObjects = \Concrete\Package\CommunityStore\Src\CommunityStore\Product\ProductImage::getImageObjectsForProduct($product);
+                            foreach ($altImageObjects as $altImg) {
+                                if ($altImg && $altImg->getFileID() != $imgObj->getFileID()) {
+                                    try {
+                                        $altThumb = $communityStoreImageHelper->getThumbnail($altImg);
+                                        if ($altThumb && isset($altThumb->src) && !empty($altThumb->src) && is_string($altThumb->src)) {
+                                            $alternateImages[] = $altThumb->src;
+                                        }
+                                    } catch (\Throwable $e) {
+                                        // Skip this alternate image if thumbnail generation fails
+                                        continue;
+                                    }
+                                }
+                            }
+                        } catch (\Throwable $e) {
+                            // If getting alternate images fails, just continue without them
+                            \Concrete\Core\Support\Facade\Log::addWarning('Failed to get alternate images for product ' . $product->getID() . ': ' . $e->getMessage());
+                        }
+                        
                         if ($displayMode == 'list') {
                             ?>
                             <div class="col-md-3 col-sm-6">
                             <?php
                         }
                         ?>
-                        <div class="store-product-list-thumbnail">
+                        <div class="store-product-list-thumbnail<?= !empty($alternateImages) ? ' has-alternate-images' : '' ?>" <?php if (!empty($alternateImages)): ?>data-alternate-images="<?= h(json_encode($alternateImages)) ?>"<?php endif; ?>>
                             <?php
                             if ($showPageLink && $productPage) {
                                 ?>
                                 <a href="<?= h((string) $urlResolver->resolve([$productPage])) ?>">
-                                    <img src="<?= $thumb->src ?>" class="img-responsive img-fluid" alt="<?= $product->getName() ?>" />
+                                    <img src="<?= $thumb->src ?>" class="img-responsive img-fluid store-product-main-image" alt="<?= $product->getName() ?>" />
+                                    <?php if (!empty($alternateImages)): ?>
+                                        <img src="<?= $alternateImages[0] ?>" class="img-responsive img-fluid store-product-alternate-image" alt="<?= $product->getName() ?>" />
+                                    <?php endif; ?>
                                     <?php if (!$isSellable): ?>
                                         <div class="store-out-of-stock-overlay">
                                             <?php
@@ -299,7 +324,10 @@ switch ($productsPerRow) {
                                 <?php
                             } else {
                                 ?>
-                                <img src="<?= $thumb->src ?>" class="img-responsive img-fluid" alt="<?= $product->getName() ?>" />
+                                <img src="<?= $thumb->src ?>" class="img-responsive img-fluid store-product-main-image" alt="<?= $product->getName() ?>" />
+                                <?php if (!empty($alternateImages)): ?>
+                                    <img src="<?= $alternateImages[0] ?>" class="img-responsive img-fluid store-product-alternate-image" alt="<?= $product->getName() ?>" />
+                                <?php endif; ?>
                                 <?php if (!$isSellable): ?>
                                     <div class="store-out-of-stock-overlay">
                                         <?php
@@ -806,6 +834,36 @@ $(document).ready(function() {
                 window.location.href = url;
                 return false;
             }
+        }
+    });
+    
+    // Handle alternate images on hover - cycle through if multiple
+    $('.store-product-list-thumbnail[data-alternate-images]').each(function() {
+        var $thumbnail = $(this);
+        var alternateImages = JSON.parse($thumbnail.attr('data-alternate-images') || '[]');
+        var currentAltIndex = 0;
+        
+        if (alternateImages.length > 0) {
+            $thumbnail.on('mouseenter', function() {
+                if (alternateImages.length > 1) {
+                    // Cycle through alternate images
+                    var cycleInterval = setInterval(function() {
+                        currentAltIndex = (currentAltIndex + 1) % alternateImages.length;
+                        $thumbnail.find('.store-product-alternate-image').attr('src', alternateImages[currentAltIndex]);
+                    }, 1000); // Change image every second
+                    
+                    $thumbnail.data('cycle-interval', cycleInterval);
+                }
+            }).on('mouseleave', function() {
+                // Stop cycling and reset to first alternate
+                var cycleInterval = $thumbnail.data('cycle-interval');
+                if (cycleInterval) {
+                    clearInterval(cycleInterval);
+                    $thumbnail.removeData('cycle-interval');
+                }
+                currentAltIndex = 0;
+                $thumbnail.find('.store-product-alternate-image').attr('src', alternateImages[0]);
+            });
         }
     });
 });
