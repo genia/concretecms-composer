@@ -170,6 +170,20 @@ if ($product) {
                                 <h5><?= t('Product Image(s)') ?></h5>
                             </div>
                             <div class="card-body text-center">
+
+                                <!-- Navigation and Image Counter -->
+                                <div class="mt-3" id="image-navigation" <?= count($productImages) <= 1 ? 'style="display: none;"' : '' ?>>
+                                    <div class="d-flex justify-content-center align-items-center">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="prev-image" style="margin-right: 10px;">
+                                            <i class="fa fa-chevron-left"></i>
+                                        </button>
+                                        <span id="image-counter">1 / <?= count($productImages) ?></span>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="next-image" style="margin-left: 10px;">
+                                            <i class="fa fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
                                 <div id="product-images-container">
                                     <?php foreach ($productImages as $index => $imgData): ?>
                                         <div class="product-image-slot" data-slot-index="<?= $index ?>" <?= $index > 0 ? 'style="display: none;"' : '' ?>>
@@ -186,7 +200,9 @@ if ($product) {
                                                     </div>
                                                 <?php endif; ?>
                                                 <?php if ($imgData['isPrimary']): ?>
-                                                    <span class="badge bg-primary position-absolute top-0 end-0 m-2"><?= t('Primary') ?></span>
+                                                    <span class="badge bg-primary position-absolute top-0 end-0 m-2 primary-badge"><?= t('Primary') ?></span>
+                                                <?php elseif ($imgData['file']): ?>
+                                                    <a href="#" class="badge bg-secondary position-absolute top-0 end-0 m-2 make-primary-link" data-fid="<?= $imgData['fID'] ?>"><?= t('Make Primary') ?></a>
                                                 <?php endif; ?>
                                             </div>
                                             
@@ -212,20 +228,7 @@ if ($product) {
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
-                                </div>
-                                
-                                <!-- Navigation and Image Counter -->
-                                <div class="mt-3" id="image-navigation" <?= count($productImages) <= 1 ? 'style="display: none;"' : '' ?>>
-                                    <div class="d-flex justify-content-center align-items-center">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="prev-image" style="margin-right: 10px;">
-                                            <i class="fa fa-chevron-left"></i>
-                                        </button>
-                                        <span id="image-counter">1 / <?= count($productImages) ?></span>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="next-image" style="margin-left: 10px;">
-                                            <i class="fa fa-chevron-right"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                                </div>                                
                                 
                                 <!-- Add Image Button -->
                                 <div class="mt-3">
@@ -952,6 +955,46 @@ $(document).ready(function() {
         }, {
             filters: [{"field": "type", "type": 1}]
         });
+    });
+    
+    // Make Primary - click handler
+    $(document).on('click', '.make-primary-link', function(e) {
+        e.preventDefault();
+        var $link = $(this);
+        var $slot = $link.closest('.product-image-slot');
+        var slotIndex = $slot.data('slot-index');
+        var fID = $link.data('fid');
+        
+        // Find the current primary slot (index 0)
+        var $primarySlot = $('.product-image-slot[data-slot-index="0"]');
+        
+        // Get the current primary image ID
+        var primaryFID = $primarySlot.find('.product-image-id').val();
+        
+        // Swap the file IDs in the hidden inputs
+        $primarySlot.find('.product-image-id').val(fID);
+        $slot.find('.product-image-id').val(primaryFID);
+        
+        // Swap the visual content
+        var primaryHtml = $primarySlot.find('[id^="image-preview-"]').html();
+        var currentHtml = $slot.find('[id^="image-preview-"]').html();
+        
+        $primarySlot.find('[id^="image-preview-"]').html(currentHtml);
+        $slot.find('[id^="image-preview-"]').html(primaryHtml);
+        
+        // Update the badges/links
+        // The new primary slot gets the Primary badge
+        $primarySlot.find('.make-primary-link').replaceWith('<span class="badge bg-primary position-absolute top-0 end-0 m-2 primary-badge"><?= t("Primary") ?></span>');
+        
+        // The old primary slot (now in current slot position) gets a Make Primary link if it has an image
+        if (primaryFID && primaryFID != '0') {
+            $slot.find('.primary-badge').replaceWith('<a href="#" class="badge bg-secondary position-absolute top-0 end-0 m-2 make-primary-link" data-fid="' + primaryFID + '"><?= t("Make Primary") ?></a>');
+        } else {
+            $slot.find('.primary-badge').remove();
+        }
+        
+        // Navigate to show the primary slot
+        showImageSlot(0);
     });
     
     // Initialize image counter
