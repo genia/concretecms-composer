@@ -478,6 +478,22 @@ $(document).ready(function() {
         updateImageCounter();
     }
     
+    // Update Make Primary link for a slot after an image is added
+    function updateMakePrimaryLink(slotIndex, fileID) {
+        var $slot = $('.product-image-slot[data-slot-index="' + slotIndex + '"]');
+        var $preview = $slot.find('[id^="image-preview-"]');
+        
+        // Remove any existing badge/link
+        $preview.find('.primary-badge, .make-primary-link').remove();
+        
+        // Only add Make Primary link if this is not the primary slot (index 0) and has an image
+        if (slotIndex > 0 && fileID && fileID != '0') {
+            $preview.append('<a href="#" class="badge bg-secondary position-absolute top-0 end-0 m-2 make-primary-link" data-fid="' + fileID + '"><?= t("Make Primary") ?></a>');
+        } else if (slotIndex == 0 && fileID && fileID != '0') {
+            $preview.append('<span class="badge bg-primary position-absolute top-0 end-0 m-2 primary-badge"><?= t("Primary") ?></span>');
+        }
+    }
+    
     // Navigation
     $('#prev-image').on('click', function() {
         var total = $('.product-image-slot').length;
@@ -819,6 +835,8 @@ $(document).ready(function() {
                             } else if (file.url) {
                                 $('#image-preview-' + slotIndex).html('<img src="' + file.url + '" class="img-fluid" style="max-width: 100%; max-height: 300px;">');
                             }
+                            // Add Make Primary link for non-primary slots
+                            updateMakePrimaryLink(slotIndex, fileID);
                         }
                     });
                 },
@@ -950,6 +968,8 @@ $(document).ready(function() {
                     
                     // Update preview
                     $('#image-preview-' + slotIndex).html('<img src="' + imageUrl + '" class="img-fluid" style="max-width: 100%; max-height: 300px;">');
+                    // Add Make Primary link for non-primary slots
+                    updateMakePrimaryLink(slotIndex, data.fID);
                 }
             });
         }, {

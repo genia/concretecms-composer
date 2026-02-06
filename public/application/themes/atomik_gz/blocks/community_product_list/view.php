@@ -275,9 +275,13 @@ switch ($productsPerRow) {
                             $thumb->retinaSrc = null;
                         }
                         
-                        // Get alternate images for hover effect
+                        // Get all images for hover carousel (primary + alternates)
                         $alternateImages = [];
                         try {
+                            // Start with the primary image
+                            $alternateImages[] = $thumb->src;
+                            
+                            // Add alternate images
                             $altImageObjects = \Concrete\Package\CommunityStore\Src\CommunityStore\Product\ProductImage::getImageObjectsForProduct($product);
                             foreach ($altImageObjects as $altImg) {
                                 if ($altImg && $altImg->getFileID() != $imgObj->getFileID()) {
@@ -303,14 +307,14 @@ switch ($productsPerRow) {
                             <?php
                         }
                         ?>
-                        <div class="store-product-list-thumbnail<?= !empty($alternateImages) ? ' has-alternate-images' : '' ?>" <?php if (!empty($alternateImages)): ?>data-alternate-images="<?= h(json_encode($alternateImages)) ?>"<?php endif; ?>>
+                        <div class="store-product-list-thumbnail<?= count($alternateImages) > 1 ? ' has-alternate-images' : '' ?>" <?php if (count($alternateImages) > 1): ?>data-alternate-images="<?= h(json_encode($alternateImages)) ?>"<?php endif; ?>>
                             <?php
                             if ($showPageLink && $productPage) {
                                 ?>
                                 <a href="<?= h((string) $urlResolver->resolve([$productPage])) ?>">
                                     <img src="<?= $thumb->src ?>" class="img-responsive img-fluid store-product-main-image" alt="<?= $product->getName() ?>" />
-                                    <?php if (!empty($alternateImages)): ?>
-                                        <img src="<?= $alternateImages[0] ?>" class="img-responsive img-fluid store-product-alternate-image" alt="<?= $product->getName() ?>" />
+                                    <?php if (count($alternateImages) > 1): ?>
+                                        <img src="<?= $alternateImages[1] ?>" class="img-responsive img-fluid store-product-alternate-image" alt="<?= $product->getName() ?>" />
                                     <?php endif; ?>
                                     <?php if (!$isSellable): ?>
                                         <div class="store-out-of-stock-overlay">
@@ -325,8 +329,8 @@ switch ($productsPerRow) {
                             } else {
                                 ?>
                                 <img src="<?= $thumb->src ?>" class="img-responsive img-fluid store-product-main-image" alt="<?= $product->getName() ?>" />
-                                <?php if (!empty($alternateImages)): ?>
-                                    <img src="<?= $alternateImages[0] ?>" class="img-responsive img-fluid store-product-alternate-image" alt="<?= $product->getName() ?>" />
+                                <?php if (count($alternateImages) > 1): ?>
+                                    <img src="<?= $alternateImages[1] ?>" class="img-responsive img-fluid store-product-alternate-image" alt="<?= $product->getName() ?>" />
                                 <?php endif; ?>
                                 <?php if (!$isSellable): ?>
                                     <div class="store-out-of-stock-overlay">
