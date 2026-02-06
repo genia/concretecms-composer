@@ -206,19 +206,6 @@ if ($product) {
                                                 <?php endif; ?>
                                             </div>
                                             
-                                            <div class="mb-2">
-                                                <label class="btn btn-sm btn-primary">
-                                                    <i class="fa fa-upload"></i> <?= t('Upload New Image') ?>
-                                                    <input type="file" name="product_image_<?= $index ?>" accept="image/*" style="display: none;" class="image-upload" data-slot-index="<?= $index ?>">
-                                                </label>
-                                            </div>
-                                            
-                                            <div class="mb-2">
-                                                <button type="button" class="btn btn-sm btn-secondary select-existing-image" data-slot-index="<?= $index ?>">
-                                                    <i class="fa fa-folder-open"></i> <?= t('Select Existing') ?>
-                                                </button>
-                                            </div>
-                                            
                                             <input type="hidden" name="product_image_id[]" class="product-image-id" data-slot-index="<?= $index ?>" value="<?= $imgData['fID'] ?>">
                                             
                                             <div class="mt-2">
@@ -230,10 +217,16 @@ if ($product) {
                                     <?php endforeach; ?>
                                 </div>                                
                                 
-                                <!-- Add Image Button -->
-                                <div class="mt-3">
-                                    <button type="button" class="btn btn-sm btn-success" id="add-image-slot">
-                                        <i class="fa fa-plus"></i> <?= t('Add Image') ?>
+                                <!-- Hidden file input for uploads -->
+                                <input type="file" id="global-image-upload" accept="image/*" style="display: none;">
+                                
+                                <!-- Add Image Buttons -->
+                                <div class="mt-3 d-flex gap-2 justify-content-center">
+                                    <button type="button" class="btn btn-sm btn-primary" id="upload-new-image-btn">
+                                        <i class="fa fa-upload"></i> <?= t('Upload New Image') ?>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-secondary" id="add-existing-image-btn">
+                                        <i class="fa fa-folder-open"></i> <?= t('Add Existing Image') ?>
                                     </button>
                                 </div>
                             </div>
@@ -511,67 +504,78 @@ $(document).ready(function() {
         }
     });
     
-    // Add new image slot
-    $('#add-image-slot').on('click', function() {
+    // Helper function to add a new image slot and return its index
+    function addNewImageSlot() {
         var newIndex = $('.product-image-slot').length;
         var $newSlot = $('.product-image-slot:first').clone();
         $newSlot.attr('data-slot-index', newIndex);
         $newSlot.find('.product-image-id').attr('data-slot-index', newIndex).val(0);
-        $newSlot.find('.image-upload').attr('name', 'product_image_' + newIndex).attr('data-slot-index', newIndex).val('');
-        $newSlot.find('.select-existing-image').attr('data-slot-index', newIndex);
         $newSlot.find('.remove-image').attr('data-slot-index', newIndex);
         // Find and update the preview area ID
         var $preview = $newSlot.find('[id^="image-preview-"]');
         $preview.attr('id', 'image-preview-' + newIndex);
         // Reset preview to blank state
         $preview.html('<div class="bg-light p-5 text-muted"><i class="fa fa-image fa-3x mb-2"></i><br><?= t("No image") ?></div>');
-        $newSlot.find('.badge').remove(); // Remove primary badge from new slots
+        $newSlot.find('.badge, .make-primary-link').remove(); // Remove primary badge/link from new slots
         $newSlot.hide();
         $('#product-images-container').append($newSlot);
-        showImageSlot(newIndex);
-    });
+        return newIndex;
+    }
     
-    // Remove image slot
-    $(document).on('click', '.remove-image', function() {
-        var slotIndex = $(this).data('slot-index');
+    // Helper function to remove an empty slot by index
+    function removeEmptySlot(slotIndex) {
         var $slot = $('.product-image-slot[data-slot-index="' + slotIndex + '"]');
-        var total = $('.product-image-slot').length;
-        
-        if (total <= 1) {
-            // Can't remove the last slot, just clear it
-            $slot.find('.product-image-id').val(0);
-            $slot.find('#image-preview-' + slotIndex).html('<div class="bg-light p-5 text-muted"><i class="fa fa-image fa-3x mb-2"></i><br><?= t("No image") ?></div>');
-            $slot.find('.image-upload').val('');
-        } else {
-            // Remove the slot
-            $slot.remove();
-            // Reindex remaining slots
-            var newIndex = 0;
-            $('.product-image-slot').each(function() {
-                var oldIndex = $(this).data('slot-index');
-                if (oldIndex != slotIndex) {
+        var fileId = $slot.find('.product-image-id').val();
+        // Only remove if the slot is still empty (no image was set)
+        if (!fileId || fileId == '0') {
+            var total = $('.product-image-slot').length;
+            if (total > 1) {
+                $slot.remove();
+                // Reindex remaining slots
+                var newIndex = 0;
+                $('.product-image-slot').each(function() {
                     $(this).attr('data-slot-index', newIndex);
                     $(this).find('.product-image-id').attr('data-slot-index', newIndex);
-                    $(this).find('.image-upload').attr('name', 'product_image_' + newIndex).attr('data-slot-index', newIndex);
-                    $(this).find('.select-existing-image').attr('data-slot-index', newIndex);
                     $(this).find('.remove-image').attr('data-slot-index', newIndex);
                     $(this).find('[id^="image-preview-"]').attr('id', 'image-preview-' + newIndex);
                     newIndex++;
+                });
+                // Show appropriate slot
+                if (currentImageIndex >= newIndex) {
+                    currentImageIndex = newIndex - 1;
                 }
-            });
-            // Show first slot if we removed the current one
-            if (currentImageIndex >= newIndex) {
-                currentImageIndex = newIndex - 1;
+                showImageSlot(currentImageIndex);
             }
-            showImageSlot(currentImageIndex);
         }
+    }
+    
+    // Track the slot index for pending upload
+    var pendingUploadSlotIndex = null;
+    
+    // Upload New Image button - creates new slot and triggers file picker
+    $('#upload-new-image-btn').on('click', function() {
+        pendingUploadSlotIndex = addNewImageSlot();
+        showImageSlot(pendingUploadSlotIndex);
+        // Trigger the global file input
+        $('#global-image-upload').val('').trigger('click');
     });
     
-    // Image upload with AJAX (supports chunked uploads) - for each slot
-    $(document).on('change', '.image-upload', function(e) {
-        var slotIndex = $(this).data('slot-index');
+    // Handle global file input change
+    $('#global-image-upload').on('change', function(e) {
         var file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+            // User cancelled - remove the empty slot
+            if (pendingUploadSlotIndex !== null) {
+                removeEmptySlot(pendingUploadSlotIndex);
+                pendingUploadSlotIndex = null;
+            }
+            return;
+        }
+        
+        var slotIndex = pendingUploadSlotIndex;
+        pendingUploadSlotIndex = null;
+        
+        if (slotIndex === null) return;
         
         // Show preview immediately
         var reader = new FileReader();
@@ -587,7 +591,7 @@ $(document).ready(function() {
         }
         
         uploadInProgress[slotIndex] = true;
-        var $uploadBtn = $(this).closest('label');
+        var $uploadBtn = $('#upload-new-image-btn');
         var originalText = $uploadBtn.html();
         $uploadBtn.html('<i class="fa fa-spinner fa-spin"></i> <?= t("Uploading...") ?>').prop('disabled', true);
         
@@ -603,12 +607,144 @@ $(document).ready(function() {
         
         if (needsChunking) {
             // Upload in chunks using Dropzone.js format
-            uploadFileInChunks(file, uploadUrl, tokenValue, chunkSize, $uploadBtn, originalText, slotIndex);
+            uploadFileInChunksGlobal(file, uploadUrl, tokenValue, chunkSize, $uploadBtn, originalText, slotIndex);
         } else {
-            // Upload normally (single request)
-            uploadFileSingle(file, uploadUrl, tokenValue, $uploadBtn, originalText, slotIndex);
+            // Single request upload
+            var formData = new FormData();
+            formData.append('files[]', file);
+            formData.append('ccm_token', tokenValue);
+            
+            $.ajax({
+                url: uploadUrl,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhr: function() {
+                    var xhr = new window.XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            var pct = Math.round((e.loaded / e.total) * 100);
+                            $uploadBtn.html('<i class="fa fa-spinner fa-spin"></i> ' + pct + '%');
+                        }
+                    }, false);
+                    return xhr;
+                },
+                success: function(response) {
+                    $uploadBtn.html(originalText).prop('disabled', false);
+                    uploadInProgress[slotIndex] = false;
+                    handleUploadSuccessGlobal(response, slotIndex);
+                },
+                error: function(xhr, status, error) {
+                    $uploadBtn.html(originalText).prop('disabled', false);
+                    uploadInProgress[slotIndex] = false;
+                    handleUploadErrorGlobal(xhr, status, error, slotIndex);
+                }
+            });
         }
     });
+    
+    // Add Existing Image button - creates new slot and opens file manager
+    $('#add-existing-image-btn').on('click', function() {
+        var newSlotIndex = addNewImageSlot();
+        showImageSlot(newSlotIndex);
+        
+        // Open file manager
+        ConcreteFileManager.launchDialog(function(data) {
+            ConcreteFileManager.getFileDetails(data.fID, function(r) {
+                if (r.files && r.files[0]) {
+                    var file = r.files[0];
+                    $('.product-image-id[data-slot-index="' + newSlotIndex + '"]').val(data.fID);
+                    
+                    // Extract image URL from resultsThumbnailImg (usually HTML)
+                    var imageUrl = '';
+                    if (file.resultsThumbnailImg) {
+                        // Create a temporary element to parse the HTML
+                        var $temp = $('<div>').html(file.resultsThumbnailImg);
+                        var $img = $temp.find('img');
+                        if ($img.length > 0) {
+                            imageUrl = $img.attr('src');
+                        } else {
+                            // If no img tag, try using it as a direct URL
+                            imageUrl = file.resultsThumbnailImg;
+                        }
+                    }
+                    
+                    // Fallback: use file.url or construct relative path
+                    if (!imageUrl) {
+                        if (file.url) {
+                            imageUrl = file.url;
+                        } else {
+                            // Construct relative URL
+                            imageUrl = '/index.php/tools/files/get_file?fID=' + data.fID;
+                        }
+                    }
+                    
+                    // Update preview
+                    $('#image-preview-' + newSlotIndex).html('<img src="' + imageUrl + '" class="img-fluid" style="max-width: 100%; max-height: 300px;">');
+                    // Add Make Primary link for non-primary slots
+                    updateMakePrimaryLink(newSlotIndex, data.fID);
+                }
+            });
+        }, {
+            filters: [{"field": "type", "type": 1}],
+            onCancel: function() {
+                // User cancelled - remove the empty slot
+                removeEmptySlot(newSlotIndex);
+            }
+        });
+    });
+    
+    // Remove image slot
+    $(document).on('click', '.remove-image', function() {
+        var slotIndex = $(this).data('slot-index');
+        var $slot = $('.product-image-slot[data-slot-index="' + slotIndex + '"]');
+        var total = $('.product-image-slot').length;
+        
+        if (total <= 1) {
+            // Can't remove the last slot, just clear it
+            $slot.find('.product-image-id').val(0);
+            $slot.find('#image-preview-' + slotIndex).html('<div class="bg-light p-5 text-muted"><i class="fa fa-image fa-3x mb-2"></i><br><?= t("No image") ?></div>');
+            $slot.find('.make-primary-link, .primary-badge').remove();
+        } else {
+            // Remove the slot
+            $slot.remove();
+            // Reindex remaining slots
+            var newIndex = 0;
+            $('.product-image-slot').each(function() {
+                $(this).attr('data-slot-index', newIndex);
+                $(this).find('.product-image-id').attr('data-slot-index', newIndex);
+                $(this).find('.remove-image').attr('data-slot-index', newIndex);
+                $(this).find('[id^="image-preview-"]').attr('id', 'image-preview-' + newIndex);
+                newIndex++;
+            });
+            // Show first slot if we removed the current one
+            if (currentImageIndex >= newIndex) {
+                currentImageIndex = newIndex - 1;
+            }
+            showImageSlot(currentImageIndex);
+        }
+    });
+    
+    // Global upload helper functions
+    function uploadFileInChunksGlobal(file, uploadUrl, tokenValue, chunkSize, $uploadBtn, originalText, slotIndex) {
+        // Reuse the existing chunked upload logic
+        uploadFileInChunks(file, uploadUrl, tokenValue, chunkSize, $uploadBtn, originalText, slotIndex);
+    }
+    
+    function handleUploadSuccessGlobal(response, slotIndex) {
+        // Create a mock xhr object for the existing handler
+        var mockXhr = { status: 200 };
+        var $uploadBtn = $('#upload-new-image-btn');
+        var originalText = $uploadBtn.html();
+        handleUploadSuccess(response, 'success', mockXhr, $uploadBtn, originalText, slotIndex);
+    }
+    
+    function handleUploadErrorGlobal(xhr, status, error, slotIndex) {
+        var $uploadBtn = $('#upload-new-image-btn');
+        var originalText = $uploadBtn.html();
+        handleUploadError(xhr, status, error, $uploadBtn, originalText, slotIndex);
+    }
     
     function uploadFileSingle(file, uploadUrl, tokenValue, $uploadBtn, originalText, slotIndex) {
         var formData = new FormData();
@@ -727,7 +863,6 @@ $(document).ready(function() {
                 alert('<?= t("Upload failed: Invalid response format") ?>');
                 $('#image-preview-' + slotIndex).html('<div class="bg-light p-5 text-muted text-danger"><i class="fa fa-exclamation-triangle fa-3x mb-2"></i><br><?= t("Upload failed") ?><br><small><?= t("Invalid response format") ?></small></div>');
                 $('.product-image-id[data-slot-index="' + slotIndex + '"]').val('');
-                $('.image-upload[data-slot-index="' + slotIndex + '"]').val('');
                 return;
             }
         }
@@ -756,7 +891,6 @@ $(document).ready(function() {
                 alert('<?= t("Upload failed:") ?> ' + errorMsg);
                 $('#image-preview-' + slotIndex).html('<div class="bg-light p-5 text-muted text-danger"><i class="fa fa-exclamation-triangle fa-3x mb-2"></i><br><?= t("Upload failed") ?><br><small>' + errorMsg + '</small></div>');
                 $('.product-image-id[data-slot-index="' + slotIndex + '"]').val('');
-                $('.image-upload[data-slot-index="' + slotIndex + '"]').val('');
                 return;
             }
         }
@@ -783,7 +917,6 @@ $(document).ready(function() {
                 alert('<?= t("Upload failed:") ?> ' + errorMsg);
                 $('#image-preview-' + slotIndex).html('<div class="bg-light p-5 text-muted text-danger"><i class="fa fa-exclamation-triangle fa-3x mb-2"></i><br><?= t("Upload failed") ?><br><small>' + errorMsg + '</small></div>');
                 $('.product-image-id[data-slot-index="' + slotIndex + '"]').val('');
-                $('.image-upload[data-slot-index="' + slotIndex + '"]').val('');
                 return;
             }
         }
@@ -849,7 +982,6 @@ $(document).ready(function() {
             alert('<?= t("Upload failed: Unknown error. Please check the file size and try again.") ?>');
             $('#image-preview-' + slotIndex).html('<div class="bg-light p-5 text-muted text-danger"><i class="fa fa-exclamation-triangle fa-3x mb-2"></i><br><?= t("Upload failed") ?></div>');
             $('.product-image-id[data-slot-index="' + slotIndex + '"]').val('');
-            $('.image-upload[data-slot-index="' + slotIndex + '"]').val('');
             console.error('Upload response:', response);
         }
     }
@@ -930,53 +1062,9 @@ $(document).ready(function() {
         alert(errorMsg);
         $('#image-preview-' + slotIndex).html('<div class="bg-light p-5 text-muted text-danger"><i class="fa fa-exclamation-triangle fa-3x mb-2"></i><br><?= t("Upload failed") ?><br><small>' + errorDetails + '</small></div>');
         $('.product-image-id[data-slot-index="' + slotIndex + '"]').val('');
-        $('.image-upload[data-slot-index="' + slotIndex + '"]').val('');
     }
     
-    // Select existing image - for each slot
-    $(document).on('click', '.select-existing-image', function() {
-        var slotIndex = $(this).data('slot-index');
-        ConcreteFileManager.launchDialog(function(data) {
-            ConcreteFileManager.getFileDetails(data.fID, function(r) {
-                if (r.files && r.files[0]) {
-                    var file = r.files[0];
-                    $('.product-image-id[data-slot-index="' + slotIndex + '"]').val(data.fID);
-                    
-                    // Extract image URL from resultsThumbnailImg (usually HTML)
-                    var imageUrl = '';
-                    if (file.resultsThumbnailImg) {
-                        // Create a temporary element to parse the HTML
-                        var $temp = $('<div>').html(file.resultsThumbnailImg);
-                        var $img = $temp.find('img');
-                        if ($img.length > 0) {
-                            imageUrl = $img.attr('src');
-                        } else {
-                            // If no img tag, try using it as a direct URL
-                            imageUrl = file.resultsThumbnailImg;
-                        }
-                    }
-                    
-                    // Fallback: use file.url or construct relative path
-                    if (!imageUrl) {
-                        if (file.url) {
-                            imageUrl = file.url;
-                        } else {
-                            // Construct relative URL
-                            imageUrl = '/index.php/tools/files/get_file?fID=' + data.fID;
-                        }
-                    }
-                    
-                    // Update preview
-                    $('#image-preview-' + slotIndex).html('<img src="' + imageUrl + '" class="img-fluid" style="max-width: 100%; max-height: 300px;">');
-                    // Add Make Primary link for non-primary slots
-                    updateMakePrimaryLink(slotIndex, data.fID);
-                }
-            });
-        }, {
-            filters: [{"field": "type", "type": 1}]
-        });
-    });
-    
+
     // Make Primary - click handler
     $(document).on('click', '.make-primary-link', function(e) {
         e.preventDefault();
