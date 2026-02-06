@@ -86,14 +86,7 @@ if ($product) {
     }
 }
 
-// If no images, create one empty slot
-if (empty($productImages)) {
-    $productImages[] = [
-        'fID' => 0,
-        'file' => null,
-        'isPrimary' => true
-    ];
-}
+// Note: Empty $productImages array is now intentional for new products
 
 // Get multilingual values
 $productNameEN = $product ? $product->getName() : '';
@@ -185,6 +178,13 @@ if ($product) {
                                 </div>
                                 
                                 <div id="product-images-container">
+                                    <?php if (empty($productImages)): ?>
+                                        <div id="no-images-placeholder" class="text-center py-4 text-muted">
+                                            <i class="fa fa-image fa-3x mb-2"></i><br>
+                                            <?= t('No images yet') ?><br>
+                                            <small><?= t('Use the buttons below to add images') ?></small>
+                                        </div>
+                                    <?php endif; ?>
                                     <?php foreach ($productImages as $index => $imgData): ?>
                                         <div class="product-image-slot" data-slot-index="<?= $index ?>" <?= $index > 0 ? 'style="display: none;"' : '' ?>>
                                             <div id="image-preview-<?= $index ?>" class="mb-3 position-relative">
@@ -506,17 +506,43 @@ $(document).ready(function() {
     
     // Helper function to add a new image slot and return its index
     function addNewImageSlot() {
-        var newIndex = $('.product-image-slot').length;
-        var $newSlot = $('.product-image-slot:first').clone();
-        $newSlot.attr('data-slot-index', newIndex);
-        $newSlot.find('.product-image-id').attr('data-slot-index', newIndex).val(0);
-        $newSlot.find('.remove-image').attr('data-slot-index', newIndex);
-        // Find and update the preview area ID
-        var $preview = $newSlot.find('[id^="image-preview-"]');
-        $preview.attr('id', 'image-preview-' + newIndex);
-        // Reset preview to blank state
-        $preview.html('<div class="bg-light p-5 text-muted"><i class="fa fa-image fa-3x mb-2"></i><br><?= t("No image") ?></div>');
-        $newSlot.find('.badge, .make-primary-link').remove(); // Remove primary badge/link from new slots
+        var existingSlots = $('.product-image-slot').length;
+        var newIndex = existingSlots;
+        var $newSlot;
+        
+        // Hide the "no images" placeholder if it exists
+        $('#no-images-placeholder').hide();
+        
+        if (existingSlots === 0) {
+            // Create a new slot from scratch since there's nothing to clone
+            $newSlot = $('<div class="product-image-slot" data-slot-index="0">' +
+                '<div id="image-preview-0" class="mb-3 position-relative">' +
+                    '<div class="bg-light p-5 text-muted">' +
+                        '<i class="fa fa-image fa-3x mb-2"></i><br>' +
+                        '<?= t("No image") ?>' +
+                    '</div>' +
+                '</div>' +
+                '<input type="hidden" name="product_image_id[]" class="product-image-id" data-slot-index="0" value="0">' +
+                '<div class="mt-2">' +
+                    '<button type="button" class="btn btn-sm btn-danger remove-image" data-slot-index="0">' +
+                        '<i class="fa fa-trash"></i> <?= t("Remove Image") ?>' +
+                    '</button>' +
+                '</div>' +
+            '</div>');
+        } else {
+            // Clone existing slot
+            $newSlot = $('.product-image-slot:first').clone();
+            $newSlot.attr('data-slot-index', newIndex);
+            $newSlot.find('.product-image-id').attr('data-slot-index', newIndex).val(0);
+            $newSlot.find('.remove-image').attr('data-slot-index', newIndex);
+            // Find and update the preview area ID
+            var $preview = $newSlot.find('[id^="image-preview-"]');
+            $preview.attr('id', 'image-preview-' + newIndex);
+            // Reset preview to blank state
+            $preview.html('<div class="bg-light p-5 text-muted"><i class="fa fa-image fa-3x mb-2"></i><br><?= t("No image") ?></div>');
+            $newSlot.find('.badge, .make-primary-link').remove(); // Remove primary badge/link from new slots
+        }
+        
         $newSlot.hide();
         $('#product-images-container').append($newSlot);
         return newIndex;
@@ -545,37 +571,33 @@ $(document).ready(function() {
                     currentImageIndex = newIndex - 1;
                 }
                 showImageSlot(currentImageIndex);
+            } else if (total === 1) {
+                // This is the last/only slot - remove it and show placeholder
+                $slot.remove();
+                $('#no-images-placeholder').show();
+                currentImageIndex = 0;
+                updateImageCounter();
             }
         }
     }
     
-    // Track the slot index for pending upload
-    var pendingUploadSlotIndex = null;
-    
-    // Upload New Image button - creates new slot and triggers file picker
+    // Upload New Image button - triggers file picker first, creates slot only after file selected
     $('#upload-new-image-btn').on('click', function() {
-        pendingUploadSlotIndex = addNewImageSlot();
-        showImageSlot(pendingUploadSlotIndex);
-        // Trigger the global file input
+        // Trigger the global file input (slot created after file is selected)
         $('#global-image-upload').val('').trigger('click');
     });
     
-    // Handle global file input change
+    // Handle global file input change - create slot and upload only when file is selected
     $('#global-image-upload').on('change', function(e) {
         var file = e.target.files[0];
         if (!file) {
-            // User cancelled - remove the empty slot
-            if (pendingUploadSlotIndex !== null) {
-                removeEmptySlot(pendingUploadSlotIndex);
-                pendingUploadSlotIndex = null;
-            }
+            // No file selected (cancel) - nothing to do since slot wasn't created yet
             return;
         }
         
-        var slotIndex = pendingUploadSlotIndex;
-        pendingUploadSlotIndex = null;
-        
-        if (slotIndex === null) return;
+        // Now create the slot since we have a file
+        var slotIndex = addNewImageSlot();
+        showImageSlot(slotIndex);
         
         // Show preview immediately
         var reader = new FileReader();
@@ -644,13 +666,14 @@ $(document).ready(function() {
         }
     });
     
-    // Add Existing Image button - creates new slot and opens file manager
+    // Add Existing Image button - opens file manager first, creates slot only after selection
     $('#add-existing-image-btn').on('click', function() {
-        var newSlotIndex = addNewImageSlot();
-        showImageSlot(newSlotIndex);
-        
-        // Open file manager
+        // Open file manager (slot created after image is selected)
         ConcreteFileManager.launchDialog(function(data) {
+            // Now create the slot since we have a selection
+            var newSlotIndex = addNewImageSlot();
+            showImageSlot(newSlotIndex);
+            
             ConcreteFileManager.getFileDetails(data.fID, function(r) {
                 if (r.files && r.files[0]) {
                     var file = r.files[0];
@@ -687,11 +710,8 @@ $(document).ready(function() {
                 }
             });
         }, {
-            filters: [{"field": "type", "type": 1}],
-            onCancel: function() {
-                // User cancelled - remove the empty slot
-                removeEmptySlot(newSlotIndex);
-            }
+            filters: [{"field": "type", "type": 1}]
+            // No onCancel needed - slot isn't created until after selection
         });
     });
     
@@ -702,10 +722,11 @@ $(document).ready(function() {
         var total = $('.product-image-slot').length;
         
         if (total <= 1) {
-            // Can't remove the last slot, just clear it
-            $slot.find('.product-image-id').val(0);
-            $slot.find('#image-preview-' + slotIndex).html('<div class="bg-light p-5 text-muted"><i class="fa fa-image fa-3x mb-2"></i><br><?= t("No image") ?></div>');
-            $slot.find('.make-primary-link, .primary-badge').remove();
+            // This is the last slot - remove it and show placeholder
+            $slot.remove();
+            $('#no-images-placeholder').show();
+            currentImageIndex = 0;
+            updateImageCounter();
         } else {
             // Remove the slot
             $slot.remove();
@@ -716,6 +737,17 @@ $(document).ready(function() {
                 $(this).find('.product-image-id').attr('data-slot-index', newIndex);
                 $(this).find('.remove-image').attr('data-slot-index', newIndex);
                 $(this).find('[id^="image-preview-"]').attr('id', 'image-preview-' + newIndex);
+                
+                // Update primary badge - first slot (index 0) should be primary
+                var $preview = $(this).find('[id^="image-preview-"]');
+                var fileId = $(this).find('.product-image-id').val();
+                $preview.find('.primary-badge, .make-primary-link').remove();
+                if (newIndex === 0 && fileId && fileId != '0') {
+                    $preview.append('<span class="badge bg-primary position-absolute top-0 end-0 m-2 primary-badge"><?= t("Primary") ?></span>');
+                } else if (newIndex > 0 && fileId && fileId != '0') {
+                    $preview.append('<a href="#" class="badge bg-secondary position-absolute top-0 end-0 m-2 make-primary-link" data-fid="' + fileId + '"><?= t("Make Primary") ?></a>');
+                }
+                
                 newIndex++;
             });
             // Show first slot if we removed the current one
